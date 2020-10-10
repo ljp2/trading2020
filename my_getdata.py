@@ -23,22 +23,20 @@ class TradingApp(EWrapper, EClient):
 
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         event_datadone.set()
-        # df = pd.DataFrame.from_dict(self.bars, orient='index', columns='open high low close avg'.split())
         df = pd.DataFrame(self.bars, columns='day time open high low close avg'.split())
-
-        print(start, '.....', end)
-        print(df.head(100))
-        # print('DataEnd', reqId, start, end)
-        # df.to_csv(open('~/junk/bars/{}bars.csv'.format(start), 'w'))
+        bars_date = '{}'.format(self.end_date.split()[0])
+        print(bars_date)
+        df.to_csv(open('/Users/ljp2/junk/{}.csv'.format(bars_date), 'w'))
 
     def get_data(self, contract, queryTime):
+        print(queryTime)
         self.bars = []
-        end_date = queryTime.strftime("%Y%m%d %H:%M:%S")
+        self.end_date = queryTime.strftime("%Y%m%d %H:%M:%S")
         app.reqHistoricalData(reqId=1,
                               contract=contract,
-                              endDateTime=end_date,
+                              endDateTime=self.end_date,
                               durationStr='1 D',
-                              barSizeSetting='30 mins',
+                              barSizeSetting='5 mins',
                               whatToShow='TRADES',
                               useRTH=1,
                               formatDate=1,
@@ -58,24 +56,19 @@ app.connect("127.0.0.1", 4002, clientId=1)
 threading.Thread(target=websocket_con, daemon=True).start()
 event_connect.wait()
 
-dd = datetime.timedelta(days=1)
-queryTime = datetime.datetime(2020,10,7, 16, 30)
-
 contract = Contract()
 contract.symbol = "SPY"
 contract.exchange = "SMART"
 contract.secType = "STK"
 contract.currency = "USD"
 
-for i in range(2):
-    print('\n\nQuery Time', queryTime)
+dd = datetime.timedelta(days=1)
+queryTime = datetime.datetime(2020,10,9, 16, 30)
+for i in range(5):
     event_datadone.clear()
-    end_date_str = queryTime.strftime("%Y%m%d")
-    print('The End Date', end_date_str)
-
-    app.get_data(contract, queryTime)
+    app.get_data(contract, queryTime - i*dd)
     event_datadone.wait()
-    queryTime = queryTime - dd
+
 
 time.sleep(1)
 app.disconnect()
