@@ -58,8 +58,6 @@ app.connect("127.0.0.1", 4002, clientId=1)
 threading.Thread(target=websocket_con, daemon=True).start()
 event_connect.wait()
 
-print("connected =", app.isConnected())
-
 dd = datetime.timedelta(days=1)
 queryTime = datetime.datetime(2020,10,7, 16, 30)
 
@@ -72,7 +70,9 @@ contract.currency = "USD"
 for i in range(2):
     print('\n\nQuery Time', queryTime)
     event_datadone.clear()
-    print('The Date', queryTime.strftime("%Y%m%d"))
+    end_date_str = queryTime.strftime("%Y%m%d")
+    print('The End Date', end_date_str)
+
     app.get_data(contract, queryTime)
     event_datadone.wait()
     queryTime = queryTime - dd
