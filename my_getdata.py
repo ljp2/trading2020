@@ -10,26 +10,26 @@ import datetime
 class TradingApp(EWrapper, EClient):
     def __init__(self):
         EClient.__init__(self, self)
-        self.bars = []
+        self.bars = None
+        self.end_date = None
 
     def nextValidId(self, orderId: int):
         super().nextValidId(orderId)
         event_connect.set()
 
     def historicalData(self, reqId, bar):
-        barday, bartime = bar.date.split()
-        self.bars.append( (barday, bartime, bar.open, bar.high, bar.low, bar.close, bar.average) )
-
+        bartime = bar.date.split()[1]
+        self.bars.append((bartime, bar.open, bar.high, bar.low, bar.close, bar.average))
 
     def historicalDataEnd(self, reqId: int, start: str, end: str):
-        event_datadone.set()
-        df = pd.DataFrame(self.bars, columns='day time open high low close avg'.split())
+        df = pd.DataFrame(self.bars, columns='time open high low close avg'.split())
         bars_date = '{}'.format(self.end_date.split()[0])
-        print(bars_date)
-        df.to_csv(open('/Users/ljp2/junk/{}.csv'.format(bars_date), 'w'))
+        df.to_pickle('C:/junk/bars/{}.pkl'.format(bars_date))
+        # df.to_csv(open('C:/junk/bars/{}.csv'.format(bars_date), 'w'))
+        # df.to_csv(open('/Users/ljp2/junk/{}.csv'.format(bars_date), 'w'))
+        event_datadone.set()
 
     def get_data(self, contract, queryTime):
-        print(queryTime)
         self.bars = []
         self.end_date = queryTime.strftime("%Y%m%d %H:%M:%S")
         app.reqHistoricalData(reqId=1,
@@ -41,8 +41,7 @@ class TradingApp(EWrapper, EClient):
                               useRTH=1,
                               formatDate=1,
                               keepUpToDate=False,
-                              chartOptions=[])  # EClient function to request contract details
-
+                              chartOptions=[])
 
 def websocket_con():
     app.run()
@@ -55,6 +54,7 @@ app = TradingApp()
 app.connect("127.0.0.1", 4002, clientId=1)
 threading.Thread(target=websocket_con, daemon=True).start()
 event_connect.wait()
+time.sleep(1)
 
 contract = Contract()
 contract.symbol = "SPY"
@@ -63,12 +63,16 @@ contract.secType = "STK"
 contract.currency = "USD"
 
 dd = datetime.timedelta(days=1)
-queryTime = datetime.datetime(2020,10,9, 16, 30)
-for i in range(5):
-    event_datadone.clear()
-    app.get_data(contract, queryTime - i*dd)
-    event_datadone.wait()
-
+query_time_start = datetime.datetime(2020, 10, 9, 16, 30)
+for i in range(250):
+    queryTime = query_time_start- i * dd
+    if queryTime.weekday() <= 4:
+        print(queryTime,
+              ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][queryTime.weekday()])
+        event_datadone.clear()
+        app.get_data(contract, queryTime)
+        event_datadone.wait()
+    time.sleep(10)
 
 time.sleep(1)
 app.disconnect()
