@@ -19,10 +19,10 @@ class TradingApp(EWrapper, EClient):
 
     def historicalData(self, reqId, bar):
         bartime = bar.date.split()[1]
-        self.bars.append((bartime, bar.open, bar.high, bar.low, bar.close, bar.volume))
+        self.bars.append((bartime, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.average))
 
     def historicalDataEnd(self, reqId: int, start: str, end: str):
-        df = pd.DataFrame(self.bars, columns='time open high low close volume'.split()).set_index('time')
+        df = pd.DataFrame(self.bars, columns='time open high low close volume wap'.split()).set_index('time')
         bars_date = '{}'.format(self.end_date.split()[0])
 
         df.to_pickle('/Users/ljp2/junk/bars/{}.pkl'.format(bars_date))
